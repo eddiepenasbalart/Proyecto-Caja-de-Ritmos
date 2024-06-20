@@ -14,7 +14,7 @@ Este proyecto implementa un secuenciador de sonidos utilizando una ESP32, una pa
 
 ## Software Utilizado
 
-- Arduino IDE
+- Platformio IDE
 - Biblioteca Adafruit GFX
 - Biblioteca Adafruit SSD1306
 - Biblioteca I2S
