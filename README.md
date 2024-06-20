@@ -266,6 +266,14 @@ void loop() {
         }
 
         // Verificar si el secuenciador se detuvo mientras se repro
+  currentStep = (currentStep + 1) % numSteps;
+    delay(125); // 125 ms delay for 128 BPM (60,000 ms / 128 beats per minute / 4 steps per beat)
+    Serial.printf("Current Step: %d\n", currentStep);
+    printMatrix();
+  } else {
+    i2s_zero_dma_buffer(I2S_NUM_0); // Asegurar que el buffer I2S esté limpio cuando no esté ejecutándose
+  }
+}
 
 ```
 ### Parte 4:Funciones playsample() i printMatrix()
