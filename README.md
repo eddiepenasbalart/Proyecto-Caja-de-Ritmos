@@ -112,6 +112,9 @@ const char* soundNames[numSounds] = {
   "Water"
 };
 
+```
+
+
 ### Parte 2: Setup() - Configuración Inicial
 En la función setup(), configuramos los pines I2C para la comunicación con la pantalla OLED, inicializamos la pantalla y configuramos el I2S para la reproducción de audio. Además, se configuran los pines de los botones y se llama a la función printMatrix() para mostrar la matriz en la pantalla OLED al inicio.
 
@@ -168,6 +171,7 @@ void setup() {
 
   printMatrix(); // Mostrar la matriz en la pantalla OLED inicialmente
 }
+```
 
 ### Parte 3:Loop() - Funcionalidad Principal
 El loop principal se encarga de manejar la lógica del secuenciador y actualizar la visualización en la pantalla OLED. Aquí se implementa la lógica para mover el cursor por la matriz con los botones, activar/desactivar puntos en la matriz, iniciar/parar el secuenciador y reproducir las muestras de sonido según la configuración actual de la matriz.
