@@ -266,3 +266,58 @@ void loop() {
         }
 
         // Verificar si el secuenciador se detuvo mientras se repro
+
+```
+### Parte 4:Funciones playsample() i printMatrix()
+La función printMatrix se encarga de mostrar la matriz de sonidos en una pantalla OLED i la función playSample se encarga de reproducir una muestra de audio utilizando el periférico I2S.
+```cpp
+void printMatrix() {
+  display.clearDisplay();
+  display.setTextSize(1);
+  display.setTextColor(SSD1306_WHITE);
+
+  // Iterar sobre cada sonido en la matriz
+  for (int sound = 0; sound < numSounds; sound++) {
+    display.setCursor(0, sound * 8); // Ajustar la posición vertical del texto según el sonido
+    display.printf("%s: ", soundNames[sound]);
+
+    // Iterar sobre cada paso en la matriz
+    for (int step = 0; step < numSteps; step++) {
+      // Verificar si el cursor está sobre este punto y reemplazar el carácter
+      if (sound == cursorY && step == cursorX) {
+        display.print("X"); // Dibujar 'X' en lugar del carácter actual
+      } else if (soundSequences[sound][step]) {
+        display.print("O"); // Punto activo en la matriz
+      } else {
+        display.print("-"); // Punto inactivo en la matriz
+      }
+    }
+    display.println(); // Nueva línea para el siguiente sonido
+  }
+
+  display.display(); // Mostrar en la pantalla OLED
+}
+
+
+
+void playSample(const int8_t* sampleData, int sampleLength) {
+  // Usa memoria dinámica para evitar stack overflow
+  int16_t* i2sData = (int16_t*)malloc(sampleLength * sizeof(int16_t));
+
+  if (i2sData == nullptr) {
+    Serial.println("Error allocating memory");
+    return;
+  }
+
+  // Convierte los datos del sample a 16 bits
+  for (int i = 0; i < sampleLength; i++) {
+    i2sData[i] = sampleData[i] << 8;
+  }
+
+  size_t bytesWritten;
+  i2s_write(I2S_NUM_0, i2sData, sampleLength * sizeof(int16_t), &bytesWritten, portMAX_DELAY);
+
+  free(i2sData); // Libera la memoria después de usarla
+}
+
+```
