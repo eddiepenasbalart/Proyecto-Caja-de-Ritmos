@@ -48,7 +48,7 @@ Este proyecto implementa un secuenciador de sonidos utilizando una ESP32, una pa
 
 ## Código
 
-### Configuración Inicial
+### Parte 1: Librerías i asignación de pines 
 
 El código comienza configurando el hardware, incluyendo la pantalla OLED y el módulo I2S:
 
@@ -70,10 +70,11 @@ Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 #define I2S_WS_PIN   25
 #define I2S_DATA_PIN 27
 
-// Configuración del I2C
+// Configuración del I2C para la pantalla OLED
 #define I2C_SCL_PIN 22
 #define I2C_SDA_PIN 21
 
+// Definiciones para la reproducción de muestras de sonido
 const int SAMPLE_RATE = 16384;
 const int KICK_SOUND = 0;
 const int SNARE1_SOUND = 1;
@@ -101,22 +102,25 @@ const int buttonStartStopPin = 19;
 const int buttonResetPin = 5;
 
 const char* soundNames[numSounds] = {
-  "Kc",
-  "S1",
-  "S2",
-  "Cl",
-  "Sn",
-  "CH",
-  "HH",
-  "Wt"
+  "Kick",
+  "Snare 1",
+  "Snare 2",
+  "Clap",
+  "Snap",
+  "Closed Hat",
+  "Hi Hat",
+  "Water"
 };
 
-void playSample(const int8_t* sampleData, int sampleLength);
-void printMatrix();
+### Parte 2: Setup() - Configuración Inicial
+En la función setup(), configuramos los pines I2C para la comunicación con la pantalla OLED, inicializamos la pantalla y configuramos el I2S para la reproducción de audio. Además, se configuran los pines de los botones y se llama a la función printMatrix() para mostrar la matriz en la pantalla OLED al inicio.
+
+```cpp
+
 void setup() {
   Serial.begin(115200);
 
-  // Configuración de I2C
+  // Configuración de I2C para la pantalla OLED
   Wire.begin(I2C_SDA_PIN, I2C_SCL_PIN);
 
   // Inicialización de la pantalla OLED
@@ -125,10 +129,10 @@ void setup() {
     for (;;);
   }
   display.display();
-  delay(2000);
+  delay(2000); // Espera inicial para la pantalla OLED
   display.clearDisplay();
 
-  // Configuración de I2S
+  // Configuración de I2S para la reproducción de audio
   i2s_config_t i2s_config = {
     .mode = (i2s_mode_t)(I2S_MODE_MASTER | I2S_MODE_TX),
     .sample_rate = SAMPLE_RATE,
@@ -148,10 +152,12 @@ void setup() {
     .data_in_num = I2S_PIN_NO_CHANGE
   };
 
+  // Instalación y configuración del driver I2S
   i2s_driver_install(I2S_NUM_0, &i2s_config, 0, NULL);
   i2s_set_pin(I2S_NUM_0, &pin_config);
   i2s_set_clk(I2S_NUM_0, SAMPLE_RATE, I2S_BITS_PER_SAMPLE_16BIT, I2S_CHANNEL_MONO);
 
+  // Configuración de los pines de los botones
   pinMode(buttonUpPin, INPUT_PULLUP);
   pinMode(buttonDownPin, INPUT_PULLUP);
   pinMode(buttonLeftPin, INPUT_PULLUP);
@@ -160,10 +166,14 @@ void setup() {
   pinMode(buttonStartStopPin, INPUT_PULLUP);
   pinMode(buttonResetPin, INPUT_PULLUP);
 
-  printMatrix();
+  printMatrix(); // Mostrar la matriz en la pantalla OLED inicialmente
 }
 
+### Parte 3:Loop() - Funcionalidad Principal
+El loop principal se encarga de manejar la lógica del secuenciador y actualizar la visualización en la pantalla OLED. Aquí se implementa la lógica para mover el cursor por la matriz con los botones, activar/desactivar puntos en la matriz, iniciar/parar el secuenciador y reproducir las muestras de sonido según la configuración actual de la matriz.
+```cpp
 void loop() {
+  // Lógica para mover el cursor en la matriz con los botones
   if (digitalRead(buttonUpPin) == LOW && cursorY > 0) {
     cursorY--;
     Serial.println("Moved Up");
@@ -188,17 +198,23 @@ void loop() {
     printMatrix();
     delay(200);
   }
+
+  // Lógica para activar/desactivar puntos en la matriz con el botón Select
   if (digitalRead(buttonSelectPin) == LOW) {
     soundSequences[cursorY][cursorX] = !soundSequences[cursorY][cursorX];
     Serial.printf("Toggled Point at Sound %d, Step %d to %s\n", cursorY, cursorX, soundSequences[cursorY][cursorX] ? "ON" : "OFF");
     printMatrix();
     delay(200);
   }
+
+  // Lógica para iniciar/parar el secuenciador con el botón Start/Stop
   if (digitalRead(buttonStartStopPin) == LOW) {
     isRunning = !isRunning;
     Serial.printf("Sequencer %s\n", isRunning ? "Started" : "Stopped");
     delay(200);
   }
+
+  // Lógica para reiniciar la matriz con el botón Reset
   if (digitalRead(buttonResetPin) == LOW) {
     for (int i = 0; i < numSounds; i++) {
       for (int j = 0; j < numSteps; j++) {
@@ -210,19 +226,39 @@ void loop() {
     delay(200);
   }
 
+  // Lógica para reproducir las muestras de sonido según el estado actual del secuenciador
   if (isRunning) {
     for (int sound = 0; sound < numSounds; sound++) {
       if (soundSequences[sound][currentStep]) {
         Serial.printf("Playing sound %d at step %d\n", sound, currentStep);
-        if (sound == KICK_SOUND) {
-          playSample(kick9_DATA, kick9_NUM_CELLS);
-        } else if (sound == SNARE1_SOUND) {
-          playSample(snare3_DATA, snare3_NUM_CELLS);
-        } else if (sound == SNARE2_SOUND) {
-          playSample(snare3_DATA, snare4_NUM_CELLS);
-        } else if (sound == CLAP_SOUND) {
-          playSample(clap2_DATA, clap2_NUM_CELLS);
-        } else if (sound == SNAP_SOUND) {
-          playSample(snap1_DATA, snap1_NUM_CELLS);
-        } else if (sound == CLOSED_HAT_SOUND) {
-          playSample(chihat2_DATA, chihat2
+        // Lógica para reproducir las muestras de sonido según el tipo de sonido
+        switch (sound) {
+          case KICK_SOUND:
+            playSample(kick9_DATA, kick9_NUM_CELLS);
+            break;
+          case SNARE1_SOUND:
+            playSample(snare3_DATA, snare3_NUM_CELLS);
+            break;
+          case SNARE2_SOUND:
+            playSample(snare3_DATA, snare4_NUM_CELLS);
+            break;
+          case CLAP_SOUND:
+            playSample(clap2_DATA, clap2_NUM_CELLS);
+            break;
+          case SNAP_SOUND:
+            playSample(snap1_DATA, snap1_NUM_CELLS);
+            break;
+          case CLOSED_HAT_SOUND:
+            playSample(chihat2_DATA, chihat2_NUM_CELLS);
+            break;
+          case HI_HAT_TABLE:
+            playSample(HIHATTABLE_DATA, HIHATTABLE_NUM_CELLS);
+            break;
+          case WATER_SOUND:
+            playSample(water1_DATA, water1_NUM_CELLS);
+            break;
+          default:
+            break;
+        }
+
+        // Verificar si el secuenciador se detuvo mientras se repro
